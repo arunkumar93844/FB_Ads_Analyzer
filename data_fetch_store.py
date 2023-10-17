@@ -8,16 +8,16 @@ import os
 logging.basicConfig(level=logging.DEBUG,filename="LogRecorder.log", format='%(asctime)s %(message)s\n',filemode='+w')
 def user_input():
     logging.info('Gathering user informations: access_Token,ad_Account_Id,api_Version\n')
-    access_Token = "EAAFJeUBYkBUBOZBvw85ToDePeHlKRVLqRur5dFQpCB7VWrqanptfiZB0x9uU1SQXZCnR30fkLX2ZA8DV61rLvbTtEjqsraEeNILNVdtx2ajP3J0aKhBHF2gV8WeRcRT75ztgPEvo8YxOiNZA52qHQrcPTwZCha9YocTL6n5nAx2FIqHsRVAVO8qudBUgZC7kh2x5ACHsG1weWajEzpy0Rb8ZCZBozhRcZD"
-    ad_Account_Id = "325461523366868"
-    api_Version = "18.0"
+    access_Token = input("Enter your Access token here: ")
+    ad_Account_Id = input("Enter your Ad account id here: ")
+    api_Version = input("Enter your API version here: ")
     logging.info(f"Successfully gathered user informations:\n access_Token = {access_Token}\n ad_Account_Id = {ad_Account_Id}\n api_Version = {api_Version}\n")
     return access_Token,ad_Account_Id,api_Version
 
 @sleep_and_retry
 @limits(calls=1,period=18)
 def data_fetch(access_token,ad_account_id,api_version):
-    graph_api_url = f'https://graph.facebook.com/v{api_version}/act_{ad_account_id}'
+    graph_api_url = f'https://graph.facebook.com/v{api_version}/{ad_account_id}'
     feilds={'access_token':access_token,
             'ad_accounts{id}':'',
             'ads{id,name,creative,insights,targeting}':'',
@@ -62,8 +62,9 @@ def data_process_validate(response):
             return False
 def data_store(validation,response):
      if validation:
-            folder_path = r"C:\Users\Administrator\Desktop\arun"
-            file_name = "first_test.json"
+            folder_path = input("Enter your Folder path where your flle should be created: ")
+            folder_path = folder_path.replace('"','')
+            file_name = input("Enter your filename with .json extensio.Ex:'newfile.json: ")
             try:
                 response_json = response.json()
                 logging.info("Information is proccessed into JSON format for storing...\n")
@@ -96,17 +97,7 @@ def main():
     return True
 
 if __name__=="__main__":
-    i=20
-    while i:
-        dateTime=datetime.datetime.now()
-        time=dateTime.strftime("%H:%M:%S")
-        print(f"Started FB {str(i)} at {time}")
-        main()
-        dateTime=datetime.datetime.now()
-        time=dateTime.strftime("%H:%M:%S")
-        print(f"Stopped FB {str(i)} at {time}")
-        i-=1
-
+   main()
 
 
 
