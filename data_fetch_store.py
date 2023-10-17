@@ -1,26 +1,27 @@
 from ratelimit import limits,sleep_and_retry
+import datetime
 import logging
 import requests
 import json
+import jsonschema
 import os
 logging.basicConfig(level=logging.DEBUG,filename="LogRecorder.log", format='%(asctime)s %(message)s\n',filemode='+w')
 def user_input():
     logging.info('Gathering user informations: access_Token,ad_Account_Id,api_Version\n')
-    access_Token = input('Enter your access token here: ')
-    ad_Account_Id = input('Enter your ad account id here: ')
-    api_Version = input('Enter your api version here: ')
+    access_Token = "EAAFJeUBYkBUBOZBvw85ToDePeHlKRVLqRur5dFQpCB7VWrqanptfiZB0x9uU1SQXZCnR30fkLX2ZA8DV61rLvbTtEjqsraEeNILNVdtx2ajP3J0aKhBHF2gV8WeRcRT75ztgPEvo8YxOiNZA52qHQrcPTwZCha9YocTL6n5nAx2FIqHsRVAVO8qudBUgZC7kh2x5ACHsG1weWajEzpy0Rb8ZCZBozhRcZD"
+    ad_Account_Id = "325461523366868"
+    api_Version = "18.0"
     logging.info(f"Successfully gathered user informations:\n access_Token = {access_Token}\n ad_Account_Id = {ad_Account_Id}\n api_Version = {api_Version}\n")
     return access_Token,ad_Account_Id,api_Version
 
 @sleep_and_retry
 @limits(calls=1,period=18)
 def data_fetch(access_token,ad_account_id,api_version):
-    graph_api_url = f'https://graph.facebook.com/v{api_version}/{ad_account_id}'
+    graph_api_url = f'https://graph.facebook.com/v{api_version}/act_{ad_account_id}'
     feilds={'access_token':access_token,
-            'ad_accounts',
-            'customaudiences',
-            'ads{id,name,creative,insights,targeting}',
-            'campaigns{id,name,start_time,end_time,creative,insights,targeting}'
+            'ad_accounts{id}':'',
+            'ads{id,name,creative,insights,targeting}':'',
+            'campaigns{id,name,time_range,spend_cap,daily_budget,budget_remaining,creative,insights,targeting}':''
             }
     try:
         logging.info("Making API request...\n") 
@@ -32,23 +33,50 @@ def data_fetch(access_token,ad_account_id,api_version):
     except requests.exceptions.RequestException as error:
         logging.exception(f'API request failed:{str(error)}\n Skipping information processing and storing...\n')
         print(f'API request failed:{str(error)}')
+        print(response_raw.json())
         return False
 
-def data_process_store(response):
+def data_process_validate(response):
+        logging.info("Validation process has started...")
         if response:
-            folder_path = input('Enter your folder path where you file should be created (remove "" while pasting): ')
-            file_name = input('Enter your filename with its .extension like "mynewpython.py" here: ')
-
+            schema={"type":"object",
+                    "properties":{
+                        "account_id":{"type":"string"},
+                        "id":{"type":"string"},
+                        "name":{"type":"string"},
+                        "ads":{"type":"object"},
+                        "campaigns":{"type":"object"}
+                            }
+                        }
             try:
                 response_json = response.json()
-                logging.info("Information is proccessed into JSON format...\n")
+                jsonschema.validate(instance=response_json,schema=schema)
+                logging.info("Information is proccessed into Python dict for validation...\n")
+                return True
+            except jsonschema.exceptions.ValidationError as error:
+                logging.exception(f"Validation Failed:{error}" )
+                print(f'Validation Error:{error}')
+                return False
+                
+        else:
+            return False
+def data_store(validation,response):
+     if validation:
+            folder_path = r"C:\Users\Administrator\Desktop\arun"
+            file_name = "first_test.json"
+            try:
+                response_json = response.json()
+                logging.info("Information is proccessed into JSON format for storing...\n")
+                date_time=datetime.datetime.now()
                 with open(f'{folder_path}\\{file_name}','a+') as file:
                     file.seek(0)
+                    file.write(f"\n\nData stored at : {str(date_time)}\n\n")
                     json.dump(response_json,file,indent=4)
                     logging.info(f"Information is stored at the location {folder_path}\\{file_name}...\n")
                     file.close()
+                    print("Successfully fetched and stored the data...")
             except json.JSONDecodeError as error:
-                logging.exception(f'Failed to parse JSON response: {str(error)...\n'}
+                logging.exception(f'Failed to parse JSON response: {str(error)}...\n')
                 print(f"Failed to parse JSON response: {str(error)}")
                 return True
             except OSError as error:
@@ -62,12 +90,23 @@ def main():
     logging.info('FB_Manager has started...\n')
     access_token, ad_account_id, api_version= user_input()
     response= data_fetch(access_token,ad_account_id,api_version)
-    data_process_store(response)
+    validation=data_process_validate(response)
+    data_store(validation,response)
     logging.info('FB_Manager has stoped...\n\n')
     return True
 
 if __name__=="__main__":
-    main()
+    i=20
+    while i:
+        dateTime=datetime.datetime.now()
+        time=dateTime.strftime("%H:%M:%S")
+        print(f"Started FB {str(i)} at {time}")
+        main()
+        dateTime=datetime.datetime.now()
+        time=dateTime.strftime("%H:%M:%S")
+        print(f"Stopped FB {str(i)} at {time}")
+        i-=1
+
 
 
 
